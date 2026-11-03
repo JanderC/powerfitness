@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Scale,
   UserCheck,
+  Users,
   XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -44,6 +45,8 @@ interface MembresiaCliente {
   notas: string | null;
   diasRestantes: number;
   duracionTotal: number;
+  planPersonas: number;
+  companeros: { id: string; nombre: string; apellido: string; cedula: string }[] | null;
 }
 
 interface ClienteFull {
@@ -203,7 +206,7 @@ export default function ClienteDetalle() {
                   <button
                     className="btn-primary mt-4 w-full"
                     onClick={() =>
-                      setRenovar({ ...actual, clienteNombre: c.nombre, clienteApellido: c.apellido })
+                      setRenovar({ ...actual, clienteId: c.id, clienteNombre: c.nombre, clienteApellido: c.apellido })
                     }
                   >
                     <RotateCcw className="h-4 w-4" /> Renovar mensualidad
@@ -272,6 +275,17 @@ export default function ClienteDetalle() {
                       <p className="mt-1 text-sm text-slate-400">
                         {fecha(m.fechaInicio)} → {fecha(m.fechaVencimiento)} · {plural(m.duracionTotal, 'día')} · {m.metodoPago ?? '—'}
                       </p>
+                      {!!m.companeros?.length && (
+                        <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-violet-300">
+                          <Users className="h-3.5 w-3.5" /> Plan compartido con{' '}
+                          {m.companeros.map((x, k) => (
+                            <Link key={x.id} to={`/clientes/${x.id}`} className="font-semibold hover:underline">
+                              {x.nombre} {x.apellido}
+                              {k < m.companeros!.length - 1 ? ',' : ''}
+                            </Link>
+                          ))}
+                        </p>
+                      )}
                       {m.notas && <p className="mt-1 text-xs text-slate-500">{m.notas}</p>}
                     </div>
                   </li>

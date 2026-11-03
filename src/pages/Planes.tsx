@@ -17,8 +17,23 @@ const UNIDADES = [
   { v: 'anios', l: 'Años' },
 ];
 
-type Form = Pick<Plan, 'nombre' | 'tipo' | 'tipoCalculoVencimiento' | 'cantidadUnidades' | 'activo'> & { descripcion: string; color: string; precio: number | '' };
-const vacio: Form = { nombre: '', descripcion: '', tipo: 'mensual', tipoCalculoVencimiento: 'meses', cantidadUnidades: 1, precio: '', color: '#1E6FE3', activo: true };
+type Form = Pick<Plan, 'nombre' | 'tipo' | 'tipoCalculoVencimiento' | 'cantidadUnidades' | 'activo' | 'personas' | 'promocional'> & {
+  descripcion: string;
+  color: string;
+  precio: number | '';
+};
+const vacio: Form = {
+  nombre: '',
+  descripcion: '',
+  tipo: 'mensual',
+  tipoCalculoVencimiento: 'meses',
+  cantidadUnidades: 1,
+  precio: '',
+  color: '#1E6FE3',
+  activo: true,
+  personas: 1,
+  promocional: false,
+};
 
 function PlanModal({ plan, open, onClose }: { plan: Plan | null; open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
@@ -36,6 +51,8 @@ function PlanModal({ plan, open, onClose }: { plan: Plan | null; open: boolean; 
             precio: plan.precio,
             color: plan.color ?? '#1E6FE3',
             activo: plan.activo,
+            personas: plan.personas,
+            promocional: plan.promocional,
           }
         : vacio,
     );
@@ -95,6 +112,45 @@ function PlanModal({ plan, open, onClose }: { plan: Plan | null; open: boolean; 
               </option>
             ))}
           </Select>
+        </Field>
+        <Field
+          label="Personas que cubre el precio"
+          hint={
+            f.personas > 1 && f.precio
+              ? `Precio total para ${f.personas} personas: ${money(Number(f.precio) / f.personas)} c/u`
+              : 'Usa 2 o más para planes en pareja/grupo (ej. Promo Dúo)'
+          }
+        >
+          <div className="flex gap-1">
+            {[1, 2, 3, 4].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setF({ ...f, personas: n })}
+                className={cx(
+                  'flex-1 rounded-xl border py-2.5 text-sm font-semibold transition',
+                  f.personas === n ? 'border-brand-400 bg-brand-500/15 text-white' : 'border-white/10 bg-ink-900/60 text-slate-400 hover:text-white',
+                )}
+              >
+                {n === 1 ? 'Individual' : n === 2 ? 'Dúo' : n}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <Field label="Promoción">
+          <button
+            type="button"
+            onClick={() => setF({ ...f, promocional: !f.promocional })}
+            className={cx(
+              'flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition',
+              f.promocional ? 'border-gold-400/50 bg-gold-400/10 text-gold-400' : 'border-white/10 bg-ink-900/60 text-slate-400',
+            )}
+          >
+            {f.promocional ? '★ Plan promocional' : 'Marcar como promoción'}
+            <span className={cx('h-5 w-9 rounded-full p-0.5 transition', f.promocional ? 'bg-gold-400' : 'bg-white/10')}>
+              <span className={cx('block h-4 w-4 rounded-full bg-white transition', f.promocional && 'translate-x-4')} />
+            </span>
+          </button>
         </Field>
         <Field label="Descripción" className="sm:col-span-2">
           <Textarea value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} rows={2} />
@@ -168,9 +224,17 @@ export default function Planes() {
                     {p.tipo} · {p.duracionTexto}
                   </p>
                 </div>
-                {!p.activo && <Badge tone="slate">Inactivo</Badge>}
+                <div className="flex flex-col items-end gap-1">
+                  {!p.activo && <Badge tone="slate">Inactivo</Badge>}
+                  {p.promocional && <span className="chip bg-gold-400/15 text-gold-400 ring-1 ring-gold-400/30">★ Promo</span>}
+                </div>
               </div>
               <p className="mt-4 font-display text-5xl tracking-wide text-white">{money(p.precio)}</p>
+              {p.personas > 1 && (
+                <p className="mt-1 flex items-center gap-1.5 text-sm text-violet-300">
+                  <Users className="h-4 w-4" /> Para {p.personas} personas · {money(p.precioPorPersona)} c/u
+                </p>
+              )}
               {p.descripcion && <p className="mt-2 line-clamp-2 text-sm text-slate-400">{p.descripcion}</p>}
               <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
                 <Users className="h-4 w-4" /> {p.membresiasActivas ?? 0} activas · {p.totalVendidas ?? 0} vendidas

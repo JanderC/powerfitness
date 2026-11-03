@@ -14,6 +14,7 @@ import {
   Snowflake,
   Trash2,
   TrendingUp,
+  Users,
   Wallet,
   XCircle,
 } from 'lucide-react';
@@ -64,6 +65,7 @@ interface Resumen {
 function estadoVisual(m: Membresia) {
   if (m.estado === 'suspendida') return { tone: 'violet' as const, label: `Congelada · ${plural(m.diasCongelada, 'día')}`, bar: 'violet' as const };
   if (m.estado === 'cancelada') return { tone: 'slate' as const, label: 'Cancelada', bar: 'red' as const };
+  if (m.estado === 'vencida' && m.diasRestantes >= 0) return { tone: 'slate' as const, label: 'Cerrada (reemplazada)', bar: 'red' as const };
   if (m.estado === 'vencida' || m.diasRestantes < 0)
     return { tone: 'red' as const, label: `Vencida hace ${plural(Math.abs(m.diasRestantes), 'día')}`, bar: 'red' as const };
   if (m.fechaInicio > today()) return { tone: 'blue' as const, label: `Renovada · inicia ${fecha(m.fechaInicio, { day: '2-digit', month: 'short' })}`, bar: 'blue' as const };
@@ -330,10 +332,16 @@ export default function Membresias() {
                     <div className="flex items-center gap-2">
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: m.planColor ?? '#1E6FE3' }} />
                       <p className="truncate text-sm font-medium text-white">{m.planNombre}</p>
+                      {m.planPromocional && <span className="chip bg-gold-400/15 px-1.5 text-[10px] text-gold-400">Promo</span>}
                     </div>
                     <p className="mt-0.5 text-xs text-slate-400">
                       {fecha(m.fechaInicio, { day: '2-digit', month: 'short' })} → {fecha(m.fechaVencimiento)}
                     </p>
+                    {!!m.companeros?.length && (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-violet-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-violet-300">
+                        <Users className="h-3 w-3" /> Con {m.companeros.map((c) => c.nombre).join(', ')}
+                      </p>
+                    )}
                   </div>
 
                   <div className="min-w-0 space-y-1.5">

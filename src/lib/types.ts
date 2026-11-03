@@ -23,6 +23,9 @@ export interface Plan {
   tipoCalculoVencimiento: 'dias' | 'semanas' | 'meses' | 'anios';
   cantidadUnidades: number;
   duracionTexto: string;
+  personas: number;
+  promocional: boolean;
+  precioPorPersona: number;
   membresiasActivas?: number;
   totalVendidas?: number;
 }
@@ -63,6 +66,10 @@ export interface Membresia {
   planNombre: string;
   planColor: string | null;
   planPrecio: number;
+  planPersonas: number;
+  planPromocional: boolean;
+  grupoId: string | null;
+  companeros: { id: string; nombre: string; apellido: string; cedula: string }[] | null;
   saldoDeuda: number;
   diasRestantes: number;
   diasTotales: number;

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CalendarClock, CalendarDays, Check, RotateCcw } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarDays, Check, RotateCcw, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { api, errMsg } from '../lib/api';
@@ -57,11 +57,67 @@ function PlanGrid({ planes, value, onChange }: { planes: Plan[]; value?: string;
             </div>
             {value === p.id && <Check className="h-4 w-4 text-brand-300" />}
           </div>
-          <p className="mt-2 pl-2 font-display text-2xl tracking-wide text-white">{money(p.precio)}</p>
+          <div className="mt-2 flex items-end justify-between gap-2 pl-2">
+            <p className="font-display text-2xl tracking-wide text-white">{money(p.precio)}</p>
+            <div className="flex flex-wrap justify-end gap-1">
+              {p.promocional && <span className="chip bg-gold-400/15 text-gold-400 ring-1 ring-gold-400/30">Promo</span>}
+              {p.personas > 1 && (
+                <span className="chip bg-violet-500/20 text-violet-300 ring-1 ring-violet-400/20">
+                  <Users className="h-3 w-3" /> {p.personas} personas
+                </span>
+              )}
+            </div>
+          </div>
+          {p.personas > 1 && <p className="pl-2 text-xs text-slate-500">{money(p.precioPorPersona)} c/u</p>}
         </button>
       ))}
     </div>
   );
+}
+
+/** Selección de acompañantes para planes de varias personas (ej. Promo Dúo). */
+function AcompanantesPicker({
+  personas,
+  titular,
+  value,
+  onChange,
+}: {
+  personas: number;
+  titular: ClienteMin | null;
+  value: (ClienteMin | null)[];
+  onChange: (v: (ClienteMin | null)[]) => void;
+}) {
+  if (personas <= 1) return null;
+  const lista = Array.from({ length: personas - 1 }, (_, i) => value[i] ?? null);
+  const ids = [titular?.id, ...lista.map((c) => c?.id)].filter(Boolean);
+  const repetido = ids.length !== new Set(ids).size;
+  return (
+    <div className="rounded-xl border border-violet-400/25 bg-violet-500/5 p-4">
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+        <Users className="h-4 w-4 text-violet-300" /> Plan para {personas} personas: elige {personas === 2 ? 'el acompañante' : `los ${personas - 1} acompañantes`}
+      </p>
+      <div className="space-y-2">
+        {lista.map((c, i) => (
+          <ClientePicker
+            key={i}
+            value={c}
+            placeholder={personas > 2 ? `Acompañante ${i + 1} · nombre o cédula…` : 'Acompañante · nombre o cédula…'}
+            onChange={(v) => onChange(lista.map((x, k) => (k === i ? v : x)))}
+          />
+        ))}
+      </div>
+      {repetido && <p className="mt-2 text-xs text-rose-400">No puedes repetir a la misma persona</p>}
+      <p className="mt-2 text-xs text-slate-400">Cada persona recibe su propia mensualidad con las mismas fechas. Se cobra una sola vez el precio del plan.</p>
+    </div>
+  );
+}
+
+function acompanantesValidos(personas: number, titular: ClienteMin | null, lista: (ClienteMin | null)[]) {
+  if (personas <= 1) return true;
+  const sel = lista.slice(0, personas - 1);
+  if (sel.length < personas - 1 || sel.some((c) => !c)) return false;
+  const ids = [titular?.id, ...sel.map((c) => c!.id)];
+  return new Set(ids).size === ids.length;
 }
 
 function ResumenPago({ precio, pagado }: { precio: number; pagado: number }) {
@@ -109,6 +165,7 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
   const invalidate = useInvalidateMembresias();
   const { data: planes = [] } = usePlanesActivos();
   const [cliente, setCliente] = useState<ClienteMin | null>(null);
+  const [acompanantes, setAcompanantes] = useState<(ClienteMin | null)[]>([]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [inicio, setInicio] = useState(today());
   const [monto, setMonto] = useState<number | ''>('');
@@ -119,6 +176,7 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
   useEffect(() => {
     if (!open) return;
     setCliente(clienteInicial ?? null);
+    setAcompanantes([]);
     setPlan(null);
     setInicio(today());
     setMonto('');
@@ -130,6 +188,7 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
     mutationFn: () =>
       api.post<{ message: string }>('/membresias', {
         clienteId: cliente?.id,
+        acompanantes: plan && plan.personas > 1 ? acompanantes.slice(0, plan.personas - 1).map((c) => c!.id) : undefined,
         planId: plan?.id,
         fechaInicio: inicio,
         montoPagado: monto === '' ? 0 : monto,
@@ -146,7 +205,8 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
 
   const pagado = monto === '' ? 0 : monto;
   const cajaAbierta = useCajaAbierta();
-  const invalido = !cliente || !plan || pagado > (plan?.precio ?? 0) || (pagado > 0 && !cajaAbierta);
+  const invalido =
+    !cliente || !plan || pagado > plan.precio || (pagado > 0 && !cajaAbierta) || !acompanantesValidos(plan.personas, cliente, acompanantes);
 
   return (
     <Modal
@@ -184,6 +244,7 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
           />
           {!planes.length && <p className="text-sm text-slate-400">No hay planes activos. Crea uno en la sección Planes.</p>}
         </div>
+        {plan && <AcompanantesPicker personas={plan.personas} titular={cliente} value={acompanantes} onChange={setAcompanantes} />}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Fecha de inicio">
             <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
@@ -234,6 +295,9 @@ export interface MembresiaRenovable {
   clienteNombre: string;
   clienteApellido: string;
   planNombre: string;
+  clienteId?: string;
+  /** Integrantes del mismo plan grupal (se prellenan al renovar) */
+  companeros?: ClienteMin[] | null;
 }
 
 export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenovable | null; onClose: () => void }) {
@@ -243,6 +307,7 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
   const [desde, setDesde] = useState<'vencimiento' | 'hoy'>('vencimiento');
   const [monto, setMonto] = useState<number | ''>('');
   const [metodo, setMetodo] = useState<'efectivo' | 'transferencia'>('efectivo');
+  const [acompanantes, setAcompanantes] = useState<(ClienteMin | null)[]>([]);
 
   const vigente = !!membresia && membresia.fechaVencimiento >= today() && membresia.estado !== 'cancelada';
   const plan = useMemo(() => planes.find((p) => p.id === planId), [planes, planId]);
@@ -256,12 +321,14 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
     setMonto(actual?.precio ?? '');
     setDesde(membresia.fechaVencimiento >= today() ? 'vencimiento' : 'hoy');
     setMetodo('efectivo');
+    setAcompanantes(membresia.companeros ?? []);
   }, [membresia, planes]);
 
   const m = useMutation({
     mutationFn: () =>
       api.post<{ message: string }>(`/membresias/${membresia!.id}/renovar`, {
         planId,
+        acompanantes: plan && plan.personas > 1 ? acompanantes.slice(0, plan.personas - 1).map((c) => c!.id) : undefined,
         desde,
         montoPagado: monto === '' ? 0 : monto,
         metodoPago: metodo,
@@ -276,6 +343,9 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
 
   const pagado = monto === '' ? 0 : monto;
   const cajaAbierta = useCajaAbierta();
+  const titularRenov: ClienteMin | null = membresia
+    ? { id: membresia.clienteId ?? '', nombre: membresia.clienteNombre, apellido: membresia.clienteApellido, cedula: '' }
+    : null;
   return (
     <Modal
       open={!!membresia}
@@ -288,7 +358,7 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
           <button className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn-primary" disabled={!plan || pagado > (plan?.precio ?? 0) || (pagado > 0 && !cajaAbierta) || m.isPending} onClick={() => m.mutate()}>
+          <button className="btn-primary" disabled={!plan || pagado > plan.precio || (pagado > 0 && !cajaAbierta) || !acompanantesValidos(plan.personas, titularRenov, acompanantes) || m.isPending} onClick={() => m.mutate()}>
             {m.isPending ? <Spinner className="h-4 w-4 text-white" /> : <RotateCcw className="h-4 w-4" />}
             Renovar
           </button>
@@ -336,6 +406,7 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
             }}
           />
         </div>
+        {plan && <AcompanantesPicker personas={plan.personas} titular={titularRenov} value={acompanantes} onChange={setAcompanantes} />}
         {plan && <VigenciaPreview p={preview.data} loading={preview.isFetching} />}
         {plan && (
           <>
