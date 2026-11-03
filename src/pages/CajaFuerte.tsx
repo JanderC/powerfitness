@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownCircle, ArrowRightLeft, ArrowUpCircle, Banknote, Building2, Download, KeyRound, Lock, ShieldCheck, Trash2, Vault } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
+import CajaAviso from '../components/CajaAviso';
 import { Badge, ConfirmModal, EmptyState, Field, Input, Modal, MoneyInput, PageHeader, PageLoader, SegmentedPago, Select, Spinner, StatCard, Tabs, Textarea, cx } from '../components/ui';
 import { ApiError, api, cfTokenStore, errMsg } from '../lib/api';
 import { MESES, fecha, hora, money, moneyCompact } from '../lib/format';
@@ -116,6 +117,7 @@ function MovModal({ tipo, onClose, balances }: { tipo: 'ingreso' | 'egreso' | 't
       }
     >
       <div className="space-y-4">
+        {tipo === 'transferir' && <CajaAviso />}
         {tipo !== 'transferir' && (
           <Field label="Método">
             <SegmentedPago value={f.metodoPago} onChange={(v) => setF({ ...f, metodoPago: v })} />

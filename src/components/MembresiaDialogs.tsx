@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { api, errMsg } from '../lib/api';
 import { fecha, money, today } from '../lib/format';
 import type { Plan } from '../lib/types';
+import CajaAviso, { useCajaAbierta } from './CajaAviso';
 import ClientePicker, { type ClienteMin } from './ClientePicker';
 import { Field, Input, Modal, MoneyInput, SegmentedPago, Spinner, Textarea, cx } from './ui';
 
@@ -144,7 +145,8 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
   });
 
   const pagado = monto === '' ? 0 : monto;
-  const invalido = !cliente || !plan || pagado > (plan?.precio ?? 0);
+  const cajaAbierta = useCajaAbierta();
+  const invalido = !cliente || !plan || pagado > (plan?.precio ?? 0) || (pagado > 0 && !cajaAbierta);
 
   return (
     <Modal
@@ -166,6 +168,7 @@ export function NuevaMembresiaModal({ open, onClose, cliente: clienteInicial }: 
       }
     >
       <div className="space-y-5">
+        <CajaAviso />
         <Field label="Cliente">
           <ClientePicker value={cliente} onChange={setCliente} />
         </Field>
@@ -272,6 +275,7 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
   });
 
   const pagado = monto === '' ? 0 : monto;
+  const cajaAbierta = useCajaAbierta();
   return (
     <Modal
       open={!!membresia}
@@ -284,7 +288,7 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
           <button className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn-primary" disabled={!plan || pagado > (plan?.precio ?? 0) || m.isPending} onClick={() => m.mutate()}>
+          <button className="btn-primary" disabled={!plan || pagado > (plan?.precio ?? 0) || (pagado > 0 && !cajaAbierta) || m.isPending} onClick={() => m.mutate()}>
             {m.isPending ? <Spinner className="h-4 w-4 text-white" /> : <RotateCcw className="h-4 w-4" />}
             Renovar
           </button>
@@ -292,6 +296,7 @@ export function RenovarModal({ membresia, onClose }: { membresia: MembresiaRenov
       }
     >
       <div className="space-y-5">
+        <CajaAviso />
         <div>
           <span className="label">¿Desde cuándo?</span>
           <div className="grid gap-2 sm:grid-cols-2">

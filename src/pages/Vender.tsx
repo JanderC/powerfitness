@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Minus, Package, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import CajaAviso, { useCajaAbierta } from '../components/CajaAviso';
 import ClientePicker, { type ClienteMin } from '../components/ClientePicker';
 import { Badge, EmptyState, Field, MoneyInput, PageHeader, PageLoader, SearchInput, SegmentedPago, Spinner, Textarea, cx, useDebounced } from '../components/ui';
 import { api, errMsg } from '../lib/api';
@@ -33,6 +34,7 @@ export default function Vender() {
   const [metodo, setMetodo] = useState<'efectivo' | 'transferencia'>('efectivo');
   const [pagado, setPagado] = useState<number | ''>('');
   const [notas, setNotas] = useState('');
+  const cajaAbierta = useCajaAbierta();
 
   const { data: productos, isLoading } = useQuery({
     queryKey: ['productos', 'pos', term],
@@ -82,6 +84,7 @@ export default function Vender() {
   return (
     <>
       <PageHeader title="Punto de venta" subtitle="Vende productos y registra el pago en caja" icon={ShoppingCart} />
+      <CajaAviso className="mb-4" />
       <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
         <div className="min-w-0 space-y-4">
           <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar producto…" />
@@ -183,7 +186,7 @@ export default function Vender() {
             <Field label="Nota">
               <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} />
             </Field>
-            <button className="btn-primary w-full py-3 text-base" disabled={!carrito.length || montoPagado > total || (saldo > 0 && !cliente) || m.isPending} onClick={() => m.mutate()}>
+            <button className="btn-primary w-full py-3 text-base" disabled={!carrito.length || montoPagado > total || (saldo > 0 && !cliente) || (montoPagado > 0 && !cajaAbierta) || m.isPending} onClick={() => m.mutate()}>
               {m.isPending ? <Spinner className="h-5 w-5 text-white" /> : <ShoppingCart className="h-5 w-5" />}
               Cobrar {money(montoPagado)}
             </button>

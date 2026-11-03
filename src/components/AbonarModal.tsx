@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { api, errMsg } from '../lib/api';
 import { money } from '../lib/format';
 import type { Deuda } from '../lib/types';
+import CajaAviso, { useCajaAbierta } from './CajaAviso';
 import { Field, Modal, MoneyInput, SegmentedPago, Spinner, Textarea } from './ui';
 
 export default function AbonarModal({ deuda, onClose }: { deuda: Deuda | null; onClose: () => void }) {
@@ -28,6 +29,7 @@ export default function AbonarModal({ deuda, onClose }: { deuda: Deuda | null; o
     onError: (e) => toast.error(errMsg(e)),
   });
   const valor = monto === '' ? 0 : monto;
+  const cajaAbierta = useCajaAbierta();
   const excede = !!deuda && valor > deuda.saldo;
   return (
     <Modal
@@ -41,7 +43,7 @@ export default function AbonarModal({ deuda, onClose }: { deuda: Deuda | null; o
           <button className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn-success" disabled={!valor || excede || m.isPending} onClick={() => m.mutate()}>
+          <button className="btn-success" disabled={!valor || excede || !cajaAbierta || m.isPending} onClick={() => m.mutate()}>
             {m.isPending && <Spinner className="h-4 w-4 text-white" />}
             {deuda && valor === deuda.saldo ? 'Pagar todo' : 'Abonar'}
           </button>
@@ -50,6 +52,7 @@ export default function AbonarModal({ deuda, onClose }: { deuda: Deuda | null; o
     >
       {deuda && (
         <div className="space-y-4">
+          <CajaAviso />
           <div className="rounded-xl bg-ink-900/70 p-4 text-center ring-1 ring-white/5">
             <p className="text-xs uppercase tracking-wide text-slate-400">Saldo pendiente</p>
             <p className="font-display text-4xl tracking-wide text-amber-300">{money(deuda.saldo)}</p>

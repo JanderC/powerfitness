@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Banknote, Briefcase, History, Pencil, Plus, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import CajaAviso, { useCajaAbierta } from '../components/CajaAviso';
 import { Avatar, Badge, ConfirmModal, EmptyState, Field, Input, Modal, MoneyInput, PageHeader, PageLoader, SegmentedPago, cx } from '../components/ui';
 import { api, errMsg } from '../lib/api';
 import { MESES, fecha, fechaHora, money } from '../lib/format';
@@ -82,6 +83,7 @@ function PagarModal({ e, onClose }: { e: Empleado | null; onClose: () => void })
   const [monto, setMonto] = useState<number | ''>('');
   const [periodo, setPeriodo] = useState('');
   const [metodo, setMetodo] = useState<'efectivo' | 'transferencia'>('efectivo');
+  const cajaAbierta = useCajaAbierta();
   useEffect(() => {
     if (e) {
       setMonto(e.salario ? Math.round(e.salario / 2) : '');
@@ -102,12 +104,13 @@ function PagarModal({ e, onClose }: { e: Empleado | null; onClose: () => void })
       title="Registrar pago"
       subtitle={e && `${e.nombre} ${e.apellido} · se registra como egreso en Caja Diaria`}
       footer={
-        <button className="btn-primary" disabled={!monto || !periodo || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn-primary" disabled={!monto || !periodo || !cajaAbierta || m.isPending} onClick={() => m.mutate()}>
           <Banknote className="h-4 w-4" /> Pagar
         </button>
       }
     >
       <div className="space-y-4">
+        <CajaAviso />
         <Field label="Monto" hint={e?.salario ? `Salario mensual: ${money(e.salario)}` : undefined}>
           <MoneyInput value={monto} onChange={setMonto} />
         </Field>

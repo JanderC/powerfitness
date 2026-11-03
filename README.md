@@ -28,7 +28,8 @@ y agrega ese origen del frontend en `CORS_ORIGIN` del backend.
 | `/planes` | Planes y precios |
 | `/vender`, `/productos` | Punto de venta con carrito e inventario |
 | `/deudas` | Saldos pendientes y abonos |
-| `/caja`, `/caja-fuerte` | Caja diaria (cierres) y caja fuerte (protegida con contraseña) |
+| `/caja` | Caja por sesiones: apertura con base, movimientos del turno, cierre con arqueo por billetes, comprobante imprimible e historial |
+| `/caja-fuerte` | Caja fuerte (protegida con contraseña) |
 | `/reportes` | Ingresos, por plan, asistencia y horas pico, productos, inactivos |
 | `/empleados`, `/usuarios` | Solo administrador |
 | `/kiosko` | Registro de entrada por cédula (sin sesión) |

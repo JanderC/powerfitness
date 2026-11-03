@@ -22,11 +22,12 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api, errMsg } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { fechaHora } from '../lib/format';
+import { useCaja } from '../lib/caja';
+import { fechaHora, hora } from '../lib/format';
 import { Field, Input, Modal, cx } from './ui';
 
 const NAV = [
@@ -127,6 +128,24 @@ function Notificaciones() {
         </div>
       )}
     </div>
+  );
+}
+
+function CajaEstado() {
+  const { data } = useCaja();
+  if (!data) return null;
+  return data.abierta ? (
+    <Link
+      to="/caja"
+      title={`Abierta por ${data.sesion.usuarioAperturaNombre}`}
+      className="hidden items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-400/20 hover:bg-emerald-500/15 sm:flex"
+    >
+      <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" /> Caja abierta · {hora(data.sesion.fechaApertura)}
+    </Link>
+  ) : (
+    <Link to="/caja" className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 ring-1 ring-amber-400/30 hover:bg-amber-500/15">
+      <span className="h-2 w-2 rounded-full bg-amber-400" /> Caja cerrada
+    </Link>
   );
 }
 
@@ -271,6 +290,7 @@ export default function Layout() {
             {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
           <div className="ml-auto flex items-center gap-1">
+            <CajaEstado />
             <Notificaciones />
             <div className="relative">
               <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-2 hover:bg-white/5">
